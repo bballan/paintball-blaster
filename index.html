@@ -335,7 +335,7 @@
     </div>
 
     <script>
-        // --- AUDIO ENGINE (Procedural Sound Effects & Ambient Radar Hum) ---
+        // --- AUDIO ENGINE ---
         class SoundEngine {
             constructor() {
                 this.ctx = null;
@@ -412,7 +412,6 @@
             difficulty: 'easy'
         };
 
-        // Cloud & Local Storage Sync with Smart Merge
         async function loadProfile(username) {
             return new Promise((resolve) => {
                 setTimeout(() => {
@@ -422,7 +421,6 @@
                         if (raw) localData = JSON.parse(raw);
                     } catch(e) {}
 
-                    // Smart Merge & Fallback
                     if (localData) {
                         gameState.points = Math.max(gameState.points, localData.points || 0);
                         if (localData.unlockedWeapons) {
@@ -433,7 +431,7 @@
                         if (localData.equippedWeapon) gameState.equippedWeapon = localData.equippedWeapon;
                     }
                     resolve();
-                }, 800); // Simulated cloud handshake delay
+                }, 800);
             });
         }
 
@@ -447,7 +445,7 @@
                         equippedWeapon: gameState.equippedWeapon
                     }));
                 } catch(e) {}
-                setTimeout(resolve, 300); // Simulated cloud commit delay
+                setTimeout(resolve, 300);
             });
         }
 
@@ -523,6 +521,7 @@
         let spawnTimer = 0;
         let currentSpawnInterval = 90;
         let score = 0;
+        let barrelRotation = 0;
 
         function resizeGame() {
             gameCanvas.width = window.innerWidth;
@@ -531,7 +530,6 @@
         window.addEventListener('resize', resizeGame);
         resizeGame();
 
-        // Difficulty selector logic
         document.querySelectorAll('.diff-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('active'));
@@ -540,7 +538,6 @@
             });
         });
 
-        // Screen Navigation
         const loginScreen = document.getElementById('login-screen');
         const syncScreen = document.getElementById('sync-screen');
         const menuScreen = document.getElementById('menu-screen');
@@ -664,7 +661,6 @@
             menuScreen.classList.remove('hidden');
         });
 
-        // --- GAME LOOP & CORE MECHANICS ---
         function startGame() {
             gameRunning = true;
             score = 0;
@@ -673,7 +669,6 @@
             particles = [];
             spawnTimer = 0;
 
-            // Configure difficulty parameters
             if (gameState.difficulty === 'easy') currentSpawnInterval = 65;
             else if (gameState.difficulty === 'medium') currentSpawnInterval = 45;
             else currentSpawnInterval = 28;
@@ -681,18 +676,17 @@
             document.getElementById('hud-points').innerText = `Points: ${score}`;
         }
 
-        // Tap/Click to shoot & hit targets instantly
         window.addEventListener('pointerdown', (e) => {
             if (!gameRunning) return;
             if (e.target.tagName === 'BUTTON') return;
 
             audio.playShoot();
+            barrelRotation += 0.6; // Spin barrels on shoot
 
             const rect = gameCanvas.getBoundingClientRect();
             const clickX = e.clientX - rect.left;
             const clickY = e.clientY - rect.top;
 
-            // Check target hits instantly
             let hitAny = false;
             for (let i = targets.length - 1; i >= 0; i--) {
                 const t = targets[i];
@@ -703,7 +697,6 @@
                     score += t.value;
                     document.getElementById('hud-points').innerText = `Points: ${score}`;
 
-                    // Create massive screen-filling paint splatter
                     createSplatter(t.x, t.y, t.color);
                     createParticles(t.x, t.y, t.color);
 
@@ -712,8 +705,7 @@
                 }
             }
 
-            // Muzzle flash / shot particle at bottom center
-            createMuzzleFlash(gameCanvas.width / 2, gameCanvas.height, clickX, clickY);
+            createMuzzleFlash(gameCanvas.width / 2, gameCanvas.height - 30, clickX, clickY);
         });
 
         function createSplatter(x, y, color) {
@@ -783,35 +775,56 @@
             targets.push({ x, y, radius, speed, color, value: Math.floor(radius) });
         }
 
+        // --- PROPERLY ANCHORED & CENTERED ORNATE GOLD MINIGUN ---
         function drawTurret(targetX, targetY) {
             const x = gameCanvas.width / 2;
-            const y = gameCanvas.height;
+            const y = gameCanvas.height - 20; // Bottom mount position
+
+            const angle = Math.atan2(targetY - y, targetX - x);
 
             ctx.save();
             ctx.translate(x, y);
 
-            // Compute angle towards touch/mouse
-            const angle = Math.atan2(targetY - y, targetX - x);
-            ctx.rotate(angle + Math.PI / 2);
-
-            // Draw ornate gold minigun barrel pointing upwards
-            ctx.shadowColor = '#ffd700';
-            ctx.shadowBlur = 15;
-            ctx.fillStyle = '#b8860b';
-            ctx.fillRect(-12, -70, 8, 70);
-            ctx.fillRect(4, -70, 8, 70);
-            ctx.fillStyle = '#ffd700';
-            ctx.fillRect(-16, -20, 32, 40);
-
-            // Base mount
+            // Draw base mount housing (semi-circle fixed at bottom center)
             ctx.beginPath();
-            ctx.arc(0, 0, 35, 0, Math.PI, true);
-            ctx.fillStyle = '#4a3b6c';
+            ctx.arc(0, 10, 45, Math.PI, 0, false);
+            ctx.fillStyle = '#b8860b';
             ctx.fill();
             ctx.lineWidth = 4;
-            ctx.strokeStyle = '#ffd700';
+            ctx.strokeStyle = '#fff8dc';
             ctx.stroke();
 
+            // Rotate turret arm towards target
+            ctx.save();
+            ctx.rotate(angle + Math.PI / 2);
+
+            // Ornate Gold Receiver / Body
+            ctx.shadowColor = '#ffd700';
+            ctx.shadowBlur = 15;
+            ctx.fillStyle = '#ffd700';
+            ctx.fillRect(-22, -45, 44, 55);
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = '#ff8c00';
+            ctx.strokeRect(-22, -45, 44, 55);
+
+            // Gold Rotary Barrels
+            ctx.fillStyle = '#daa520';
+            for (let i = 0; i < 4; i++) {
+                const bAngle = barrelRotation + (i * (Math.PI / 2));
+                const bx = Math.cos(bAngle) * 8;
+                const by = Math.sin(bAngle) * 8;
+                ctx.fillRect(bx - 3, by - 85, 6, 45);
+                ctx.strokeRect(bx - 3, by - 85, 6, 45);
+            }
+
+            // Muzzle Ring
+            ctx.fillStyle = '#ffdf00';
+            ctx.beginPath();
+            ctx.arc(0, -85, 12, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.restore();
             ctx.restore();
         }
 
@@ -832,7 +845,6 @@
                     spawnTarget();
                 }
 
-                // Update & Render Paint Splatters
                 splatters.forEach(s => {
                     ctx.beginPath();
                     ctx.arc(s.x, s.y, s.radius, 0, Math.PI * 2);
@@ -843,11 +855,9 @@
                 });
                 splatters = splatters.filter(s => s.alpha > 0);
 
-                // Update & Render Targets
-                targets.forEach((t, index) => {
+                targets.forEach((t) => {
                     t.y += t.speed;
 
-                    // Draw target gem
                     ctx.save();
                     ctx.beginPath();
                     ctx.arc(t.x, t.y, t.radius, 0, Math.PI * 2);
@@ -859,7 +869,6 @@
                     ctx.stroke();
                     ctx.restore();
 
-                    // Check game over condition (targets reach bottom)
                     if (t.y > gameCanvas.height + 40) {
                         gameRunning = false;
                         audio.playExplosion();
@@ -870,7 +879,6 @@
                     }
                 });
 
-                // Update & Render Particles
                 particles.forEach(p => {
                     p.x += p.vx;
                     p.y += p.vy;
@@ -886,7 +894,6 @@
                 });
                 particles = particles.filter(p => p.alpha > 0);
 
-                // Render Bottom-Mounted Ornate Gold Minigun
                 drawTurret(mouseX, mouseY);
             }
 
