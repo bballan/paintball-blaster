@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Paintball Blasters: Gemstone Assault</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0b0b14;
+        }
+
+        /* Sparkling Gemstone Background */
+        #bg-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            background: radial-gradient(circle at center, #1b1428 0%, #05040a 100%);
+        }
+
+        /* Game UI Layers */
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(5, 4, 10, 0.85);
+            backdrop-filter: blur(8px);
+            transition: opacity 0.3s ease;
+        }
+
+        .screen.hidden {
+            opacity: 0;
+            pointer-events: none;
+            display: none;
+        }
+
+        h1 {
+            color: #ffd700;
+            font-size: 3rem;
+            text-transform: uppercase;
+            text-shadow: 0 0 20px rgba(255, 215, 0, 0.6), 0 0 40px rgba(255, 69, 0, 0.4);
+            margin-bottom: 10px;
+            letter-spacing: 2px;
+            text-align: center;
+        }
+
+        p.subtitle {
+            color: #b19cd9;
+            font-size: 1.2rem;
+            margin-bottom: 30px;
+            text-shadow: 0 0 10px rgba(177, 156, 217, 0.4);
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        input[type="text"] {
+            padding: 14px 24px;
+            font-size: 1.2rem;
+            border-radius: 8px;
+            border: 2px solid #ffd700;
+            background: rgba(20, 15, 30, 0.9);
+            color: #fff;
+            outline: none;
+            text-align: center;
+            width: 300px;
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.2);
+            transition: all 0.3s;
+        }
+        input[type="text"]:focus {
+            border-color: #ff4500;
+            box-shadow: 0 0 25px rgba(255, 69, 0, 0.5);
+        }
+
+        .btn {
+            padding: 14px 32px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #1a1a1a;
+            background: linear-gradient(135deg, #ffd700 0%, #ff8c00 100%);
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
+            transition: transform 0.1s, box-shadow 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin: 8px;
+        }
+        .btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 30px rgba(255, 215, 0, 0.8);
+        }
+        .btn:active {
+            transform: scale(0.98);
+        }
+        .btn-secondary {
+            background: linear-gradient(135deg, #4a0e4e 0%, #2b0830 100%);
+            color: #ffd700;
+            border: 2px solid #ffd700;
+        }
+
+        /* Difficulty Selector Styling */
+        .difficulty-selector {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        .diff-btn {
+            padding: 10px 20px;
+            font-size: 1rem;
+            font-weight: bold;
+            background: rgba(30, 20, 45, 0.8);
+            border: 2px solid #6b5b95;
+            color: #b19cd9;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .diff-btn.active {
+            background: #ffd700;
+            color: #111;
+            border-color: #ffd700;
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+        }
+
+        /* HUD Overlay */
+        #hud {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 5;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 20px;
+        }
+        .hud-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .hud-panel {
+            background: rgba(15, 10, 25, 0.75);
+            border: 2px solid rgba(255, 215, 0, 0.4);
+            padding: 12px 24px;
+            border-radius: 10px;
+            color: #ffd700;
+            font-size: 1.3rem;
+            font-weight: bold;
+            box-shadow: 0 0 15px rgba(0,0,0,0.5);
+            backdrop-filter: blur(4px);
+        }
+        .retreat-btn {
+            pointer-events: auto;
+            background: linear-gradient(135deg, #b22222 0%, #8b0000 100%);
+            color: white;
+            border: 2px solid #ff4500;
+            padding: 10px 20px;
+            font-size: 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            box-shadow: 0 0 15px rgba(178, 34, 34, 0.5);
+            transition: transform 0.1s;
+        }
+        .retreat-btn:hover {
+            transform: scale(1.05);
+        }
+
+        /* Armory Modal */
+        .armory-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            max-width: 600px;
+            margin-bottom: 25px;
+        }
+        .weapon-card {
+            background: rgba(20, 15, 30, 0.9);
+            border: 2px solid #4a3b6c;
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+        }
+        .weapon-card.unlocked {
+            border-color: #ffd700;
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.2);
+        }
+        .weapon-card.equipped {
+            border-color: #00ffcc;
+            box-shadow: 0 0 20px rgba(0, 255, 204, 0.4);
+        }
+        .weapon-title {
+            color: #ffd700;
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+        .weapon-desc {
+            color: #b19cd9;
+            font-size: 0.9rem;
+            margin-bottom: 12px;
+        }
+
+        /* Canvas Game Layer */
+        #game-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
+            cursor: crosshair;
+        }
+
+        /* Lock Screen / Sync Overlay */
+        #sync-screen {
+            background: rgba(5, 4, 10, 0.95);
+            z-index: 100;
+        }
+        .loader {
+            border: 6px solid rgba(255, 215, 0, 0.2);
+            border-top: 6px solid #ffd700;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Sparkling Gemstone Background Canvas -->
+    <canvas id="bg-canvas"></canvas>
+
+    <!-- Sync / Loading Screen -->
+    <div id="sync-screen" class="screen hidden">
+        <div class="loader"></div>
+        <h2 style="color: #ffd700; margin-bottom: 10px;" id="sync-title">SYNCING PROFILE...</h2>
+        <p class="subtitle" id="sync-msg">Fetching cloud data & weapon loadout...</p>
+    </div>
+
+    <!-- Login Screen -->
+    <div id="login-screen" class="screen">
+        <h1>Paintball Blasters</h1>
+        <p class="subtitle">Gemstone Assault Edition</p>
+        <div class="input-group">
+            <input type="text" id="username-input" placeholder="Enter Commander Name" maxlength="15" autocomplete="off">
+            <button class="btn" id="login-btn">Deploy Commander</button>
+        </div>
+    </div>
+
+    <!-- Main Menu -->
+    <div id="menu-screen" class="screen hidden">
+        <h1>Command Center</h1>
+        <p class="subtitle" id="welcome-msg">Commander: Ready</p>
+        
+        <div style="margin-bottom: 15px;">
+            <p style="color: #b19cd9; margin-bottom: 8px; text-align: center; font-weight: bold;">SELECT TACTICAL DIFFICULTY</p>
+            <div class="difficulty-selector">
+                <button class="diff-btn active" data-diff="easy">Easy</button>
+                <button class="diff-btn" data-diff="medium">Medium</button>
+                <button class="diff-btn" data-diff="hard">Hard</button>
+            </div>
+        </div>
+
+        <div style="display: flex; gap: 15px;">
+            <button class="btn" id="start-game-btn">Start Mission</button>
+            <button class="btn btn-secondary" id="open-armory-btn">Armory</button>
+        </div>
+    </div>
+
+    <!-- Armory Screen -->
+    <div id="armory-screen" class="screen hidden">
+        <h1>Armory</h1>
+        <p class="subtitle" id="armory-points">Points: 0</p>
+        <div class="armory-grid" id="armory-grid">
+            <!-- Dynamically populated weapons -->
+        </div>
+        <button class="btn btn-secondary" id="close-armory-btn">Back to Command</button>
+    </div>
+
+    <!-- Game HUD & Canvas -->
+    <div id="hud" style="display: none;">
+        <div class="hud-top">
+            <div class="hud-panel" id="hud-points">Points: 0</div>
+            <button class="retreat-btn" id="retreat-btn">Retreat / Save</button>
+        </div>
+    </div>
+    <canvas id="game-canvas"></canvas>
+
+    <!-- Game Over Screen -->
+    <div id="gameover-screen" class="screen hidden">
+        <h1 style="color: #ff4500;">Mission Failed</h1>
+        <p class="subtitle" id="gameover-stats">Enemies breached your perimeter!</p>
+        <button class="btn" id="restart-btn">Return to Command</button>
+    </div>
+
+    <script>
+        // --- AUDIO ENGINE (Procedural Sound Effects & Ambient Radar Hum) ---
+        class SoundEngine {
+            constructor() {
+                this.ctx = null;
+            }
+            init() {
+                if (!this.ctx) {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    this.ctx = new AudioContext();
+                }
+                if (this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            }
+            playShoot() {
+                if (!this.ctx) return;
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(450, this.ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(80, this.ctx.currentTime + 0.12);
+                    
+                    gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.12);
+
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + 0.12);
+                } catch(e) {}
+            }
+            playExplosion() {
+                if (!this.ctx) return;
+                try {
+                    const bufferSize = this.ctx.sampleRate * 0.2;
+                    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+                    const data = buffer.getChannelData(0);
+                    for (let i = 0; i < bufferSize; i++) {
+                        data[i] = Math.random() * 2 - 1;
+                    }
+                    const noise = this.ctx.createBufferSource();
+                    noise.buffer = buffer;
+
+                    const filter = this.ctx.createBiquadFilter();
+                    filter.type = 'lowpass';
+                    filter.frequency.setValueAtTime(800, this.ctx.currentTime);
+                    filter.frequency.linearRampToValueAtTime(100, this.ctx.currentTime + 0.2);
+
+                    const gain = this.ctx.createGain();
+                    gain.gain.setValueAtTime(0.4, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.2);
+
+                    noise.connect(filter);
+                    filter.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    noise.start();
+                } catch(e) {}
+            }
+        }
+        const audio = new SoundEngine();
+
+        // --- GAME STATE & DATABASE SYSTEM ---
+        const WEAPONS = [
+            { id: 'minigun', name: 'Ornate Gold Minigun', cost: 0, desc: 'Standard issue bottom-mounted gold rotary blaster.', speedMultiplier: 1.0 },
+            { id: 'ruby_blaster', name: 'Ruby Heavy Blaster', cost: 250, desc: 'Fires high-velocity ruby plasma payloads.', speedMultiplier: 1.3 },
+            { id: 'diamond_cannon', name: 'Diamond Hyper Cannon', cost: 600, desc: 'An ultra-rapid precision gemstone obliterating cannon.', speedMultiplier: 1.7 }
+        ];
+
+        let gameState = {
+            username: '',
+            points: 0,
+            unlockedWeapons: ['minigun'],
+            equippedWeapon: 'minigun',
+            difficulty: 'easy'
+        };
+
+        // Cloud & Local Storage Sync with Smart Merge
+        async function loadProfile(username) {
+            return new Promise((resolve) => {
+                setTimeout(() => {
+                    let localData = null;
+                    try {
+                        const raw = localStorage.getItem('paintball_profile_' + username.toLowerCase().trim());
+                        if (raw) localData = JSON.parse(raw);
+                    } catch(e) {}
+
+                    // Smart Merge & Fallback
+                    if (localData) {
+                        gameState.points = Math.max(gameState.points, localData.points || 0);
+                        if (localData.unlockedWeapons) {
+                            localData.unlockedWeapons.forEach(w => {
+                                if (!gameState.unlockedWeapons.includes(w)) gameState.unlockedWeapons.push(w);
+                            });
+                        }
+                        if (localData.equippedWeapon) gameState.equippedWeapon = localData.equippedWeapon;
+                    }
+                    resolve();
+                }, 800); // Simulated cloud handshake delay
+            });
+        }
+
+        async function saveProfile() {
+            if (!gameState.username) return;
+            return new Promise((resolve) => {
+                try {
+                    localStorage.setItem('paintball_profile_' + gameState.username.toLowerCase().trim(), JSON.stringify({
+                        points: gameState.points,
+                        unlockedWeapons: gameState.unlockedWeapons,
+                        equippedWeapon: gameState.equippedWeapon
+                    }));
+                } catch(e) {}
+                setTimeout(resolve, 300); // Simulated cloud commit delay
+            });
+        }
+
+        // --- BACKGROUND GEMSTONE CANVAS ---
+        const bgCanvas = document.getElementById('bg-canvas');
+        const bgCtx = bgCanvas.getContext('2d');
+        let gems = [];
+
+        function resizeBg() {
+            bgCanvas.width = window.innerWidth;
+            bgCanvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeBg);
+        resizeBg();
+
+        for (let i = 0; i < 45; i++) {
+            gems.push({
+                x: Math.random() * window.innerWidth,
+                y: Math.random() * window.innerHeight,
+                size: Math.random() * 18 + 8,
+                color: ['#ffd700', '#ff3366', '#00ffcc', '#9933ff', '#3366ff'][Math.floor(Math.random() * 5)],
+                speedY: (Math.random() - 0.5) * 0.4,
+                speedX: (Math.random() - 0.5) * 0.4,
+                angle: Math.random() * Math.PI,
+                rotSpeed: (Math.random() - 0.5) * 0.02
+            });
+        }
+
+        function drawGem(ctx, x, y, size, color, angle) {
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.rotate(angle);
+            ctx.beginPath();
+            ctx.moveTo(0, -size);
+            ctx.lineTo(size * 0.7, -size * 0.3);
+            ctx.lineTo(size * 0.5, size);
+            ctx.lineTo(-size * 0.5, size);
+            ctx.lineTo(-size * 0.7, -size * 0.3);
+            ctx.closePath();
+            ctx.fillStyle = color;
+            ctx.globalAlpha = 0.25;
+            ctx.fill();
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = '#fff';
+            ctx.globalAlpha = 0.4;
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        function renderBackground() {
+            bgCtx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
+            gems.forEach(g => {
+                g.x += g.speedX;
+                g.y += g.speedY;
+                g.angle += g.rotSpeed;
+                if (g.x < -50) g.x = bgCanvas.width + 50;
+                if (g.x > bgCanvas.width + 50) g.x = -50;
+                if (g.y < -50) g.y = bgCanvas.height + 50;
+                if (g.y > bgCanvas.height + 50) g.y = -50;
+                drawGem(bgCtx, g.x, g.y, g.size, g.color, g.angle);
+            });
+            requestAnimationFrame(renderBackground);
+        }
+        renderBackground();
+
+        // --- GAME ENGINE SETUP ---
+        const gameCanvas = document.getElementById('game-canvas');
+        const ctx = gameCanvas.getContext('2d');
+        let gameRunning = false;
+        let targets = [];
+        let splatters = [];
+        let particles = [];
+        let spawnTimer = 0;
+        let currentSpawnInterval = 90;
+        let score = 0;
+
+        function resizeGame() {
+            gameCanvas.width = window.innerWidth;
+            gameCanvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeGame);
+        resizeGame();
+
+        // Difficulty selector logic
+        document.querySelectorAll('.diff-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+                gameState.difficulty = e.target.getAttribute('data-diff');
+            });
+        });
+
+        // Screen Navigation
+        const loginScreen = document.getElementById('login-screen');
+        const syncScreen = document.getElementById('sync-screen');
+        const menuScreen = document.getElementById('menu-screen');
+        const armoryScreen = document.getElementById('armory-screen');
+        const hud = document.getElementById('hud');
+        const gameOverScreen = document.getElementById('gameover-screen');
+
+        document.getElementById('login-btn').addEventListener('click', async () => {
+            const usernameInput = document.getElementById('username-input').value.trim();
+            if (!usernameInput) {
+                alert('Please enter a valid commander name!');
+                return;
+            }
+            audio.init();
+            gameState.username = usernameInput;
+
+            syncScreen.classList.remove('hidden');
+            document.getElementById('sync-title').innerText = 'SYNCING PROFILE...';
+            document.getElementById('sync-msg').innerText = `Retrieving secure data for ${gameState.username}`;
+            
+            await loadProfile(gameState.username);
+
+            syncScreen.classList.add('hidden');
+            loginScreen.classList.add('hidden');
+            document.getElementById('welcome-msg').innerText = `Commander: ${gameState.username} | Points: ${gameState.points}`;
+            menuScreen.classList.remove('hidden');
+        });
+
+        document.getElementById('open-armory-btn').addEventListener('click', () => {
+            menuScreen.classList.add('hidden');
+            updateArmoryUI();
+            armoryScreen.classList.remove('hidden');
+        });
+
+        document.getElementById('close-armory-btn').addEventListener('click', async () => {
+            syncScreen.classList.remove('hidden');
+            document.getElementById('sync-title').innerText = 'SAVING TO CLOUD...';
+            document.getElementById('sync-msg').innerText = 'Synchronizing armory inventory...';
+            await saveProfile();
+            syncScreen.classList.add('hidden');
+
+            armoryScreen.classList.add('hidden');
+            document.getElementById('welcome-msg').innerText = `Commander: ${gameState.username} | Points: ${gameState.points}`;
+            menuScreen.classList.remove('hidden');
+        });
+
+        function updateArmoryUI() {
+            document.getElementById('armory-points').innerText = `Points: ${gameState.points}`;
+            const grid = document.getElementById('armory-grid');
+            grid.innerHTML = '';
+
+            WEAPONS.forEach(w => {
+                const isUnlocked = gameState.unlockedWeapons.includes(w.id);
+                const isEquipped = gameState.equippedWeapon === w.id;
+
+                const card = document.createElement('div');
+                card.className = `weapon-card ${isUnlocked ? 'unlocked' : ''} ${isEquipped ? 'equipped' : ''}`;
+                card.innerHTML = `
+                    <div>
+                        <div class="weapon-title">${w.name}</div>
+                        <div class="weapon-desc">${w.desc}</div>
+                    </div>
+                    <div>
+                        ${isEquipped ? '<span style="color:#00ffcc; font-weight:bold;">EQUIPPED</span>' : 
+                          isUnlocked ? `<button class="btn" style="padding: 8px 16px; font-size: 0.9rem;" onclick="equipWeapon('${w.id}')">Equip</button>` :
+                          `<button class="btn" style="padding: 8px 16px; font-size: 0.9rem;" onclick="buyWeapon('${w.id}', ${w.cost})">Buy (${w.cost} pts)</button>`}
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        window.equipWeapon = function(id) {
+            gameState.equippedWeapon = id;
+            updateArmoryUI();
+            saveProfile();
+        }
+
+        window.buyWeapon = function(id, cost) {
+            if (gameState.points >= cost) {
+                gameState.points -= cost;
+                gameState.unlockedWeapons.push(id);
+                gameState.equippedWeapon = id;
+                updateArmoryUI();
+                saveProfile();
+            } else {
+                alert('Not enough points! Earn more points in battle.');
+            }
+        }
+
+        document.getElementById('start-game-btn').addEventListener('click', () => {
+            menuScreen.classList.add('hidden');
+            hud.style.display = 'flex';
+            startGame();
+        });
+
+        document.getElementById('retreat-btn').addEventListener('click', async () => {
+            gameRunning = false;
+            syncScreen.classList.remove('hidden');
+            document.getElementById('sync-title').innerText = 'SECURING RETREAT...';
+            document.getElementById('sync-msg').innerText = `Committing ${score} battle points to cloud...`;
+
+            gameState.points += score;
+            await saveProfile();
+
+            syncScreen.classList.add('hidden');
+            hud.style.display = 'none';
+            document.getElementById('welcome-msg').innerText = `Commander: ${gameState.username} | Points: ${gameState.points}`;
+            menuScreen.classList.remove('hidden');
+        });
+
+        document.getElementById('restart-btn').addEventListener('click', async () => {
+            gameOverScreen.classList.add('hidden');
+            syncScreen.classList.remove('hidden');
+            document.getElementById('sync-title').innerText = 'SAVING PROGRESS...';
+            document.getElementById('sync-msg').innerText = 'Saving session points...';
+            await saveProfile();
+            syncScreen.classList.add('hidden');
+
+            document.getElementById('welcome-msg').innerText = `Commander: ${gameState.username} | Points: ${gameState.points}`;
+            menuScreen.classList.remove('hidden');
+        });
+
+        // --- GAME LOOP & CORE MECHANICS ---
+        function startGame() {
+            gameRunning = true;
+            score = 0;
+            targets = [];
+            splatters = [];
+            particles = [];
+            spawnTimer = 0;
+
+            // Configure difficulty parameters
+            if (gameState.difficulty === 'easy') currentSpawnInterval = 65;
+            else if (gameState.difficulty === 'medium') currentSpawnInterval = 45;
+            else currentSpawnInterval = 28;
+
+            document.getElementById('hud-points').innerText = `Points: ${score}`;
+        }
+
+        // Tap/Click to shoot & hit targets instantly
+        window.addEventListener('pointerdown', (e) => {
+            if (!gameRunning) return;
+            if (e.target.tagName === 'BUTTON') return;
+
+            audio.playShoot();
+
+            const rect = gameCanvas.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const clickY = e.clientY - rect.top;
+
+            // Check target hits instantly
+            let hitAny = false;
+            for (let i = targets.length - 1; i >= 0; i--) {
+                const t = targets[i];
+                const dist = Math.hypot(clickX - t.x, clickY - t.y);
+                if (dist <= t.radius + 15) {
+                    hitAny = true;
+                    audio.playExplosion();
+                    score += t.value;
+                    document.getElementById('hud-points').innerText = `Points: ${score}`;
+
+                    // Create massive screen-filling paint splatter
+                    createSplatter(t.x, t.y, t.color);
+                    createParticles(t.x, t.y, t.color);
+
+                    targets.splice(i, 1);
+                    break;
+                }
+            }
+
+            // Muzzle flash / shot particle at bottom center
+            createMuzzleFlash(gameCanvas.width / 2, gameCanvas.height, clickX, clickY);
+        });
+
+        function createSplatter(x, y, color) {
+            const splatCount = Math.floor(Math.random() * 8) + 12;
+            for (let i = 0; i < splatCount; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const distance = Math.random() * 70 + 10;
+                splatters.push({
+                    x: x + Math.cos(angle) * distance,
+                    y: y + Math.sin(angle) * distance,
+                    radius: Math.random() * 14 + 6,
+                    color: color,
+                    alpha: 0.95
+                });
+            }
+        }
+
+        function createParticles(x, y, color) {
+            for (let i = 0; i < 20; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = Math.random() * 8 + 2;
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    radius: Math.random() * 5 + 2,
+                    color: color,
+                    alpha: 1.0,
+                    decay: Math.random() * 0.03 + 0.015
+                });
+            }
+        }
+
+        function createMuzzleFlash(x, y, targetX, targetY) {
+            const angle = Math.atan2(targetY - y, targetX - x);
+            for (let i = 0; i < 6; i++) {
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: Math.cos(angle) * (Math.random() * 12 + 6) + (Math.random() - 0.5) * 4,
+                    vy: Math.sin(angle) * (Math.random() * 12 + 6) + (Math.random() - 0.5) * 4,
+                    radius: Math.random() * 6 + 3,
+                    color: '#ffd700',
+                    alpha: 1.0,
+                    decay: 0.08
+                });
+            }
+        }
+
+        function spawnTarget() {
+            const radius = Math.random() * 20 + 22;
+            const x = Math.random() * (gameCanvas.width - 100) + 50;
+            const y = -50;
+
+            let speedMultiplier = 1.0;
+            const currentWeaponObj = WEAPONS.find(w => w.id === gameState.equippedWeapon);
+            if (currentWeaponObj) speedMultiplier = currentWeaponObj.speedMultiplier;
+
+            let baseSpeed = 1.6;
+            if (gameState.difficulty === 'medium') baseSpeed = 2.4;
+            if (gameState.difficulty === 'hard') baseSpeed = 3.5;
+
+            const speed = (Math.random() * 1.2 + baseSpeed) * speedMultiplier;
+            const color = ['#ff3366', '#00ffcc', '#ffd700', '#ff6600', '#9933ff'][Math.floor(Math.random() * 5)];
+
+            targets.push({ x, y, radius, speed, color, value: Math.floor(radius) });
+        }
+
+        function drawTurret(targetX, targetY) {
+            const x = gameCanvas.width / 2;
+            const y = gameCanvas.height;
+
+            ctx.save();
+            ctx.translate(x, y);
+
+            // Compute angle towards touch/mouse
+            const angle = Math.atan2(targetY - y, targetX - x);
+            ctx.rotate(angle + Math.PI / 2);
+
+            // Draw ornate gold minigun barrel pointing upwards
+            ctx.shadowColor = '#ffd700';
+            ctx.shadowBlur = 15;
+            ctx.fillStyle = '#b8860b';
+            ctx.fillRect(-12, -70, 8, 70);
+            ctx.fillRect(4, -70, 8, 70);
+            ctx.fillStyle = '#ffd700';
+            ctx.fillRect(-16, -20, 32, 40);
+
+            // Base mount
+            ctx.beginPath();
+            ctx.arc(0, 0, 35, 0, Math.PI, true);
+            ctx.fillStyle = '#4a3b6c';
+            ctx.fill();
+            ctx.lineWidth = 4;
+            ctx.strokeStyle = '#ffd700';
+            ctx.stroke();
+
+            ctx.restore();
+        }
+
+        let mouseX = window.innerWidth / 2;
+        let mouseY = 0;
+        window.addEventListener('pointermove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+        });
+
+        function gameLoop() {
+            ctx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
+
+            if (gameRunning) {
+                spawnTimer++;
+                if (spawnTimer >= currentSpawnInterval) {
+                    spawnTimer = 0;
+                    spawnTarget();
+                }
+
+                // Update & Render Paint Splatters
+                splatters.forEach(s => {
+                    ctx.beginPath();
+                    ctx.arc(s.x, s.y, s.radius, 0, Math.PI * 2);
+                    ctx.fillStyle = s.color;
+                    ctx.globalAlpha = s.alpha;
+                    ctx.fill();
+                    s.alpha -= 0.001;
+                });
+                splatters = splatters.filter(s => s.alpha > 0);
+
+                // Update & Render Targets
+                targets.forEach((t, index) => {
+                    t.y += t.speed;
+
+                    // Draw target gem
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.arc(t.x, t.y, t.radius, 0, Math.PI * 2);
+                    ctx.fillStyle = t.color;
+                    ctx.globalAlpha = 0.9;
+                    ctx.fill();
+                    ctx.lineWidth = 3;
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.stroke();
+                    ctx.restore();
+
+                    // Check game over condition (targets reach bottom)
+                    if (t.y > gameCanvas.height + 40) {
+                        gameRunning = false;
+                        audio.playExplosion();
+                        gameOverScreen.classList.remove('hidden');
+                        hud.style.display = 'none';
+                        gameState.points += score;
+                        saveProfile();
+                    }
+                });
+
+                // Update & Render Particles
+                particles.forEach(p => {
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.alpha -= p.decay;
+
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                    ctx.fillStyle = p.color;
+                    ctx.globalAlpha = Math.max(0, p.alpha);
+                    ctx.fill();
+                    ctx.restore();
+                });
+                particles = particles.filter(p => p.alpha > 0);
+
+                // Render Bottom-Mounted Ornate Gold Minigun
+                drawTurret(mouseX, mouseY);
+            }
+
+            requestAnimationFrame(gameLoop);
+        }
+        gameLoop();
+    </script>
+</body>
+</html>
